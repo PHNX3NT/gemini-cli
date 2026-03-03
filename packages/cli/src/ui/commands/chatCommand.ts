@@ -81,7 +81,7 @@ const listCommand: SlashCommand = {
       chats: chatDetails,
     };
 
-    context.ui.addItem(item, Date.now());
+    context.ui.addItem(item);
   },
 };
 
@@ -213,6 +213,7 @@ const resumeCommand: SlashCommand = {
         continue;
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
       uiHistory.push({
         type: (item.role && rolemap[item.role]) || MessageType.GEMINI,
         text,

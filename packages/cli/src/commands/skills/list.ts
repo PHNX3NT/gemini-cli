@@ -18,6 +18,7 @@ export async function handleList(args: { all?: boolean }) {
   const config = await loadCliConfig(
     settings.merged,
     'skills-list-session',
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     {
       debug: false,
     } as Partial<CliArgs> as CliArgs,
@@ -63,7 +64,7 @@ export async function handleList(args: { all?: boolean }) {
 }
 
 export const listCommand: CommandModule = {
-  command: 'list',
+  command: 'list [--all]',
   describe: 'Lists discovered agent skills.',
   builder: (yargs) =>
     yargs.option('all', {
@@ -72,6 +73,7 @@ export const listCommand: CommandModule = {
       default: false,
     }),
   handler: async (argv) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     await handleList({ all: argv['all'] as boolean });
     await exitCli();
   },

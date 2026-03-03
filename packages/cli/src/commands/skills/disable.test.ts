@@ -5,7 +5,6 @@
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { format } from 'node:util';
 import { handleDisable, disableCommand } from './disable.js';
 import {
   loadSettings,
@@ -14,12 +13,12 @@ import {
   type LoadableSettingScope,
 } from '../../config/settings.js';
 
-const emitConsoleLog = vi.hoisted(() => vi.fn());
-const debugLogger = vi.hoisted(() => ({
-  log: vi.fn((message, ...args) => {
-    emitConsoleLog('log', format(message, ...args));
-  }),
-}));
+const { emitConsoleLog, debugLogger } = await vi.hoisted(async () => {
+  const { createMockDebugLogger } = await import(
+    '../../test-utils/mockDebugLogger.js'
+  );
+  return createMockDebugLogger({ stripAnsi: true });
+});
 
 vi.mock('@google/gemini-cli-core', async (importOriginal) => {
   const actual =
@@ -84,6 +83,34 @@ describe('skills disable command', () => {
       );
     });
 
+    it('should disable an enabled skill in workspace scope', async () => {
+      const mockSettings = {
+        forScope: vi.fn().mockReturnValue({
+          settings: { skills: { disabled: [] } },
+          path: '/workspace/.gemini/settings.json',
+        }),
+        setValue: vi.fn(),
+      };
+      mockLoadSettings.mockReturnValue(
+        mockSettings as unknown as LoadedSettings,
+      );
+
+      await handleDisable({
+        name: 'skill1',
+        scope: SettingScope.Workspace as LoadableSettingScope,
+      });
+
+      expect(mockSettings.setValue).toHaveBeenCalledWith(
+        SettingScope.Workspace,
+        'skills.disabled',
+        ['skill1'],
+      );
+      expect(emitConsoleLog).toHaveBeenCalledWith(
+        'log',
+        'Skill "skill1" disabled by adding it to the disabled list in workspace (/workspace/.gemini/settings.json) settings.',
+      );
+    });
+
     it('should log a message if the skill is already disabled', async () => {
       const mockSettings = {
         forScope: vi.fn().mockReturnValue({
@@ -108,7 +135,7 @@ describe('skills disable command', () => {
 
   describe('disableCommand', () => {
     it('should have correct command and describe', () => {
-      expect(disableCommand.command).toBe('disable <name>');
+      expect(disableCommand.command).toBe('disable <name> [--scope]');
       expect(disableCommand.describe).toBe('Disables an agent skill.');
     });
   });

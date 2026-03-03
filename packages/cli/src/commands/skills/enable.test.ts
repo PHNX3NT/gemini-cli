@@ -5,7 +5,6 @@
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { format } from 'node:util';
 import { handleEnable, enableCommand } from './enable.js';
 import {
   loadSettings,
@@ -13,12 +12,12 @@ import {
   type LoadedSettings,
 } from '../../config/settings.js';
 
-const emitConsoleLog = vi.hoisted(() => vi.fn());
-const debugLogger = vi.hoisted(() => ({
-  log: vi.fn((message, ...args) => {
-    emitConsoleLog('log', format(message, ...args));
-  }),
-}));
+const { emitConsoleLog, debugLogger } = await vi.hoisted(async () => {
+  const { createMockDebugLogger } = await import(
+    '../../test-utils/mockDebugLogger.js'
+  );
+  return createMockDebugLogger({ stripAnsi: true });
+});
 
 vi.mock('@google/gemini-cli-core', async (importOriginal) => {
   const actual =
@@ -64,7 +63,7 @@ describe('skills enable command', () => {
               path: '/user/settings.json',
             };
           }
-          return { settings: {}, path: '/project/settings.json' };
+          return { settings: {}, path: '/workspace/settings.json' };
         }),
         setValue: vi.fn(),
       };
@@ -81,7 +80,7 @@ describe('skills enable command', () => {
       );
       expect(emitConsoleLog).toHaveBeenCalledWith(
         'log',
-        'Skill "skill1" enabled by removing it from the disabled list in user (/user/settings.json) and project (/project/settings.json) settings.',
+        'Skill "skill1" enabled by removing it from the disabled list in user (/user/settings.json) and workspace (/workspace/settings.json) settings.',
       );
     });
 
@@ -122,7 +121,7 @@ describe('skills enable command', () => {
       );
       expect(emitConsoleLog).toHaveBeenCalledWith(
         'log',
-        'Skill "skill1" enabled by removing it from the disabled list in project (/workspace/settings.json) and user (/user/settings.json) settings.',
+        'Skill "skill1" enabled by removing it from the disabled list in workspace (/workspace/settings.json) and user (/user/settings.json) settings.',
       );
     });
 
